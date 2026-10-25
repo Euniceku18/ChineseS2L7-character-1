@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>萬聖節漢字魔法小偵探</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #2e1065 0%, #4c1d95 50%, #1e1b4b 100%);
+            min-height: 100vh;
+            color: #f3f4f6;
+            user-select: none;
+        }
+        .spooky-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(251, 191, 36, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .float-anim {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(251, 191, 36, 0.9); }
+            100% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.4); }
+        }
+        .pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+        @keyframes dancePika {
+            0% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-15px) rotate(-10deg) scale(1.1); }
+            50% { transform: translateY(0) rotate(0deg); }
+            75% { transform: translateY(-15px) rotate(10deg) scale(1.1); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+        .pika-dance {
+            animation: dancePika 0.6s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between min-h-screen p-4 md:p-6">
+
+    <!-- 頂部萬聖節標題列 -->
+    <header class="w-full max-w-4xl bg-purple-900/60 backdrop-blur-md rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 border-2 border-amber-500/40">
+        <div class="flex items-center gap-3">
+            <div class="bg-amber-500 text-purple-950 p-3 rounded-2xl shadow-md text-2xl float-anim">
+                <i class="fa-solid fa-ghost"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-amber-300 tracking-wider">🎃 萬聖節漢字魔法小偵探</h1>
+                <p class="text-xs text-purple-200 font-medium">探索「躺、糖、棉、變」的魔法奧秘！(注音版)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="bg-purple-950/80 px-4 py-2 rounded-xl text-amber-300 font-bold text-sm border border-amber-500/30 flex items-center gap-2 shadow-inner">
+                <i class="fa-solid fa-star text-amber-400"></i>
+                <span>已解鎖南瓜: <span id="earned-badges-count">0</span> / 4</span>
+            </div>
+            <button onclick="toggleAudio()" id="audio-btn" class="bg-purple-800 hover:bg-purple-700 p-2.5 rounded-xl text-amber-300 transition shadow" title="語音朗讀開關">
+                <i class="fa-solid fa-volume-high text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要遊戲畫布容器 -->
+    <main class="w-full max-w-4xl flex-1 flex flex-col justify-center items-center my-4">
+        
+        <!-- 畫面 1：字元選擇大廳 -->
+        <div id="screen-lobby" class="w-full flex flex-col gap-6">
+            <div class="text-center py-2">
+                <h2 class="text-xl md:text-2xl font-bold text-amber-200 mb-1">🧙‍♂️ 選擇你的萬聖節魔法漢字任務</h2>
+                <p class="text-sm text-purple-300">點擊下方任一神祕漢字卡片，和小精靈一起開始偵探冒險！</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="character-grid">
+                <!-- 動態生成 4 個字的卡片 -->
+            </div>
+
+            <div class="bg-purple-900/40 border border-purple-700/50 rounded-2xl p-4 text-center mt-2 flex items-center justify-center gap-3">
+                <span class="text-2xl">🦇</span>
+                <p class="text-xs text-purple-300">提示：完成「部首拼圖」與「筆順描紅」就能獲得南瓜徽章，集滿 4 個還有皮卡丘跳舞大獎喔！</p>
+            </div>
+        </div>
+
+        <!-- 畫面 2：單字學習與闖關工作坊 (隱藏) -->
+        <div id="screen-workshop" class="w-full spooky-card rounded-3xl p-6 hidden flex flex-col gap-6 relative">
+            <div class="flex items-center justify-between">
+                <button onclick="returnToLobby()" class="bg-purple-800/80 hover:bg-purple-700 text-amber-300 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-amber-500/30 transition shadow">
+                    <i class="fa-solid fa-arrow-left"></i> 返回魔法大廳
+                </button>
+                <div id="workshop-title-badge" class="bg-amber-500/20 text-amber-300 px-4 py-1.5 rounded-full text-xs font-bold border border-amber-500/40">
+                    任務進行中
+                </div>
+            </div>
+
+            <!-- 分頁切換器 -->
+            <div class="grid grid-cols-2 gap-3 bg-purple-950/60 p-2 rounded-2xl border border-purple-800">
+                <button id="tab-btn-1" onclick="switchTab(1)" class="py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 bg-amber-500 text-purple-950 shadow">
+                    <i class="fa-solid fa-puzzle-piece"></i> 1. 部首魔法拼圖
+                </button>
+                <button id="tab-btn-2" onclick="switchTab(2)" class="py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 bg-purple-900/50 text-purple-300 hover:text-white">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 2. 魔法筆順描紅
+                </button>
+            </div>
+
+            <!-- 分頁 1：部首拼圖任務 -->
+            <div id="tab-content-1" class="flex flex-col gap-4">
+                <div class="bg-purple-950/70 p-5 rounded-2xl border border-purple-800 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="flex flex-col items-center md:items-start text-center md:text-left gap-2">
+                        <span class="bg-rose-500/20 text-rose-300 text-xs px-3 py-1 rounded-full font-bold">偵探任務一</span>
+                        <h3 id="puzzle-instruction" class="text-lg font-bold text-amber-200">請選出組成這個字的正確「部首」！</h3>
+                        <p id="puzzle-desc" class="text-xs text-purple-300 max-w-sm">找出對應的部首與部件，組裝出完整的萬聖節魔法字。</p>
+                        <button onclick="speakCurrentCharInfo()" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow flex items-center gap-2">
+                            <i class="fa-solid fa-volume-high"></i> 聽字音與解析
+                        </button>
+                    </div>
+
+                    <!-- 大漢字預覽 -->
+                    <div class="w-32 h-32 bg-amber-400 text-purple-950 rounded-3xl flex flex-col items-center justify-center shadow-lg pulse-glow border-4 border-amber-200" id="workshop-char-display">
+                        <span class="text-xs font-bold text-purple-900" id="workshop-zhuyin">ㄊㄤˇ</span>
+                        <span class="text-6xl font-black">躺</span>
+                    </div>
+                </div>
+
+                <div class="bg-purple-950/40 p-5 rounded-2xl border border-purple-800 flex flex-col gap-3">
+                    <span class="text-xs font-bold text-amber-300/80 uppercase tracking-wider">點擊正確的部首或部件：</span>
+                    <div id="puzzle-options" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+                </div>
+            </div>
+
+            <!-- 分頁 2：筆順描紅畫布 -->
+            <div id="tab-content-2" class="flex flex-col gap-4 hidden">
+                <div class="bg-purple-950/70 p-4 rounded-2xl border border-purple-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <span class="bg-amber-500/20 text-amber-300 text-xs px-3 py-1 rounded-full font-bold">偵探任務二</span>
+                        <h3 class="text-base font-bold text-amber-200 mt-1">魔法筆順描紅練習</h3>
+                        <p class="text-xs text-purple-300">請在畫布上描繪這個字，完成後即可解鎖南瓜徽章！</p>
+                    </div>
+                    <button onclick="clearCanvas()" class="bg-purple-800 hover:bg-purple-700 text-purple-200 text-xs font-bold px-3 py-2 rounded-xl border border-purple-600 transition shadow">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> 重新描紅
+                    </button>
+                </div>
+
+                <div class="relative w-full h-72 bg-slate-900 rounded-2xl border-4 border-amber-500/40 shadow-inner flex items-center justify-center overflow-hidden">
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-25">
+                        <div class="w-full h-px bg-amber-400 absolute"></div>
+                        <div class="w-px h-full bg-amber-400 absolute"></div>
+                        <div class="w-56 h-56 border-2 border-dashed border-amber-400 rotate-45 absolute"></div>
+                    </div>
+                    <span id="canvas-bg-char" class="absolute text-8xl font-black text-purple-900/40 select-none">躺</span>
+                    <canvas id="tracing-canvas" class="absolute inset-0 w-full h-full cursor-crosshair z-10"></canvas>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span id="tracing-status" class="text-xs text-amber-300 font-medium">✨ 請在畫布上滑動手指或滑鼠寫出該字</span>
+                    <button onclick="completeTracing()" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 text-purple-950 font-black px-6 py-2.5 rounded-xl shadow-lg transition transform hover:scale-105">
+                        完成描紅，領取南瓜徽章！ 🎃
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 通關 / 慶祝彈跳視窗 (Modal) -->
+    <div id="reward-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-purple-950 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center border-4 border-amber-400 relative overflow-hidden flex flex-col items-center gap-4">
+            <div class="absolute -top-10 -left-10 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl"></div>
+            <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-rose-500/20 rounded-full blur-2xl"></div>
+
+            <div id="modal-icon-area" class="text-6xl animate-bounce">
+                🎃✨
+            </div>
+
+            <h3 id="modal-title" class="text-2xl font-black text-amber-300">恭喜獲得萬聖節南瓜徽章！</h3>
+            <p id="modal-desc" class="text-purple-200 text-sm">你已經成功解鎖了這個漢字的魔法力量！</p>
+
+            <div class="bg-purple-900/80 p-4 rounded-2xl border border-amber-500/30 w-full">
+                <span class="text-xs text-purple-300">目前解鎖進度</span>
+                <p id="modal-progress" class="text-lg font-bold text-amber-400">1 / 4</p>
+            </div>
+
+            <button id="modal-btn-action" onclick="closeModalAndReturn()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 text-purple-950 font-black py-3 rounded-xl shadow-xl text-base transition cursor-pointer">
+                繼續探索其他漢字 🦇
+            </button>
+        </div>
+    </div>
+
+    <!-- 底部版權 -->
+    <footer class="w-full max-w-4xl text-center text-xs text-purple-400/80 mt-4 font-medium">
+        萬聖節漢字魔法小偵探 &copy; 2026 | 注音互動學習
+    </footer>
+
+    <!-- JavaScript 遊戲邏輯 -->
+    <script>
+        // 4 個核心指定字資料（附帶注音與萬聖節卡通情境）
+        const charactersData = [
+            {
+                char: "躺",
+                zhuyin: "ㄊㄤˇ",
+                radical: "身",
+                radicalName: "身字旁",
+                desc: "身體躺下來休息。萬聖節小幽靈累了也要躺在棺材裡休息喔！",
+                options: ["身", "木", "米", "言"],
+                correctOptionIndex: 0
+            },
+            {
+                char: "糖",
+                zhuyin: "ㄊㄤˊ",
+                radical: "米",
+                radicalName: "米字旁",
+                desc: "甜甜的糖果。萬聖節不給糖就搗蛋！",
+                options: ["木", "米", "身", "月"],
+                correctOptionIndex: 1
+            },
+            {
+                char: "棉",
+                zhuyin: "ㄇㄧㄢˊ",
+                radical: "木",
+                radicalName: "木字旁",
+                desc: "像棉花一樣柔軟的材質。萬聖節裝扮常塞滿棉花呢！",
+                options: ["身", "言", "木", "日"],
+                correctOptionIndex: 2
+            },
+            {
+                char: "變",
+                zhuyin: "ㄅㄧㄢˋ",
+                radical: "言",
+                radicalName: "言字旁 / 突變部件",
+                desc: "魔法變身！巫婆把南瓜變成會飛的掃帚！",
+                options: ["米", "身", "木", "言"],
+                correctOptionIndex: 3
+            }
+        ];
+
+        let currentSelectedIndex = 0;
+        let unlockedBadges = [false, false, false, false];
+        let soundEnabled = true;
+        let canvas, ctx, isDrawing = false;
+        let pikaDancing = false;
+
+        window.onload = function() {
+            renderLobby();
+            initCanvas();
+        };
+
+        function renderLobby() {
+            const grid = document.getElementById('character-grid');
+            grid.innerHTML = '';
+
+            charactersData.forEach((item, index) => {
+                const isUnlocked = unlockedBadges[index];
+                const card = document.createElement('div');
+                card.className = `spooky-card rounded-2xl p-5 flex flex-col items-center justify-between gap-4 cursor-pointer hover:scale-105 transition duration-200 group relative overflow-hidden`;
+                
+                card.innerHTML = `
+                    <div class="absolute top-3 right-3 text-lg ${isUnlocked ? 'text-amber-400' : 'text-purple-600/50'}">
+                        <span>🎃</span>
+                    </div>
+                    <div class="w-16 h-16 bg-purple-900/80 rounded-2xl border border-amber-500/40 flex flex-col items-center justify-center text-amber-300 shadow-inner group-hover:bg-amber-500 group-hover:text-purple-950 transition">
+                        <span class="text-xs font-bold opacity-80">${item.zhuyin}</span>
+                        <span class="text-3xl font-black">${item.char}</span>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-base font-bold text-white">${item.char} (${item.zhuyin})</h3>
+                        <p class="text-xs text-purple-300 mt-1 line-clamp-1">${item.radicalName}</p>
+                    </div>
+                    <div class="w-full bg-purple-950/60 py-2 rounded-xl text-xs font-bold text-center border border-purple-800 ${isUnlocked ? 'text-emerald-400 bg-emerald-950/30' : 'text-amber-300'}">
+                        ${isUnlocked ? '✨ 已獲得徽章' : '🔍 點擊開始解謎'}
+                    </div>
+                `;
+                card.onclick = () => openWorkshop(index);
+                grid.appendChild(card);
+            });
+
+            const earnedCount = unlockedBadges.filter(b => b).length;
+            document.getElementById('earned-badges-count').textContent = earnedCount;
+        }
+
+        function openWorkshop(index) {
+            currentSelectedIndex = index;
+            const item = charactersData[index];
+
+            document.getElementById('screen-lobby').classList.add('hidden');
+            document.getElementById('screen-workshop').classList.remove('hidden');
+            document.getElementById('workshop-zhuyin').textContent = item.zhuyin;
+            document.getElementById('workshop-char-display').querySelector('span:last-child').textContent = item.char;
+            document.getElementById('canvas-bg-char').textContent = item.char;
+            document.getElementById('workshop-title-badge').textContent = `正在挑戰：${item.char} (${item.zhuyin})`;
+
+            renderPuzzleOptions();
+            switchTab(1);
+            clearCanvas();
+        }
+
+        function returnToLobby() {
+            document.getElementById('screen-workshop').classList.add('hidden');
+            document.getElementById('screen-lobby').classList.remove('hidden');
+            renderLobby();
+        }
+
+        function switchTab(tabNum) {
+            const btn1 = document.getElementById('tab-btn-1');
+            const btn2 = document.getElementById('tab-btn-2');
+            const content1 = document.getElementById('tab-content-1');
+            const content2 = document.getElementById('tab-content-2');
+
+            if (tabNum === 1) {
+                btn1.className = "py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 bg-amber-500 text-purple-950 shadow";
+                btn2.className = "py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 bg-purple-900/50 text-purple-300 hover:text-white";
+                content1.classList.remove('hidden');
+                content2.classList.add('hidden');
+            } else {
+                btn2.className = "py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 bg-amber-500 text-purple-950 shadow";
+                btn1.className = "py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 bg-purple-900/50 text-purple-300 hover:text-white";
+                content2.classList.remove('hidden');
+                content1.classList.add('hidden');
+            }
+        }
+
+        function renderPuzzleOptions() {
+            const item = charactersData[currentSelectedIndex];
+            const container = document.getElementById('puzzle-options');
+            container.innerHTML = '';
+
+            item.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "bg-purple-900/80 hover:bg-amber-500 hover:text-purple-950 text-amber-300 font-black text-xl py-4 rounded-2xl border border-amber-500/30 transition shadow cursor-pointer flex flex-col items-center gap-1";
+                btn.innerHTML = `<span>${opt}</span> <span class="text-xs font-normal opacity-70">選項 ${idx + 1}</span>`;
+                btn.onclick = () => checkPuzzleAnswer(idx);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkPuzzleAnswer(selectedIndex) {
+            const item = charactersData[currentSelectedIndex];
+            if (selectedIndex === item.correctOptionIndex) {
+                playSuccessSound();
+                showToast("🎉 部首拼圖答對了！趕快切換到「魔法筆順描紅」吧！");
+                switchTab(2);
+            } else {
+                playErrorSound();
+                showToast("❌ 選項不太對喔！再想一想這個字的部首是什麼呢？");
+            }
+        }
+
+        function initCanvas() {
+            canvas = document.getElementById('tracing-canvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            ctx.strokeStyle = '#fde047';
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            ctx.beginPath();
+            const rect = canvas.getBoundingClientRect();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearCanvas() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function completeTracing() {
+            unlockedBadges[currentSelectedIndex] = true;
+            playSuccessSound();
+            triggerConfetti();
+
+            const earnedCount = unlockedBadges.filter(b => b).length;
+            document.getElementById('modal-progress').textContent = `${earnedCount} / 4 徽章`;
+
+            // 檢查是否 4 個全數解鎖，若是則秀出皮卡丘跳舞大獎！
+            const modalTitle = document.getElementById('modal-title');
+            const modalDesc = document.getElementById('modal-desc');
+            const modalIconArea = document.getElementById('modal-icon-area');
+            const modalBtn = document.getElementById('modal-btn-action');
+
+            if (earnedCount === 4) {
+                modalTitle.textContent = "⚡ 太神啦！全壘打解鎖！";
+                modalDesc.innerHTML = "恭喜你集齊所有萬聖節南瓜徽章！皮卡丘特地跑來為你跳舞慶祝！";
+                modalIconArea.innerHTML = `<div class="pika-dance text-7xl">⚡🐭⚡</div>`;
+                modalBtn.textContent = "再玩一次冒險 🦇";
+                modalBtn.onclick = () => {
+                    unlockedBadges = [false, false, false, false];
+                    document.getElementById('reward-modal').classList.add('hidden');
+                    returnToLobby();
+                };
+            } else {
+                modalTitle.textContent = "恭喜獲得萬聖節南瓜徽章！";
+                modalDesc.textContent = "你已經成功解鎖了這個漢字的魔法力量！";
+                modalIconArea.innerHTML = "🎃✨";
+                modalBtn.textContent = "繼續探索其他漢字 🦇";
+                modalBtn.onclick = closeModalAndReturn;
+            }
+
+            document.getElementById('reward-modal').classList.remove('hidden');
+        }
+
+        function closeModalAndReturn() {
+            document.getElementById('reward-modal').classList.add('hidden');
+            returnToLobby();
+        }
+
+        function speakCurrentCharInfo() {
+            if (!('speechSynthesis' in window)) return;
+            const item = charactersData[currentSelectedIndex];
+            const text = `${item.char}。注音 ${item.zhuyin}。${item.desc}`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('audio-btn');
+            btn.innerHTML = soundEnabled ? '<i class="fa-solid fa-volume-high text-lg"></i>' : '<i class="fa-solid fa-volume-xmark text-lg text-rose-400"></i>';
+        }
+
+        function playSuccessSound() {
+            if (!soundEnabled) return;
+            playTone(523.25, 0.1);
+            setTimeout(() => playTone(659.25, 0.1), 100);
+            setTimeout(() => playTone(783.99, 0.2), 200);
+        }
+
+        function playErrorSound() {
+            if (!soundEnabled) return;
+            playTone(200, 0.2);
+        }
+
+        function playTone(freq, duration) {
+            try {
+                const ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctxAudio.createOscillator();
+                const gain = ctxAudio.createGain();
+                osc.frequency.value = freq;
+                osc.connect(gain);
+                gain.connect(ctxAudio.destination);
+                osc.start();
+                gain.gain.setValueAtTime(0.1, ctxAudio.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctxAudio.currentTime + duration);
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function triggerConfetti() {
+            confetti({
+                particleCount: 100,
+                spread: 80,
+                origin: { y: 0.6 }
+            });
+        }
+
+        function showToast(msg) {
+            const div = document.createElement('div');
+            div.className = "fixed top-5 left-1/2 transform -translate-x-1/2 bg-amber-500 text-purple-950 font-bold px-6 py-3 rounded-2xl shadow-2xl z-50 animate-bounce border-2 border-white text-sm";
+            div.textContent = msg;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2500);
+        }
+    </script>
+</body>
+</html>
